@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>dumpscrub — Zero-config, air-gapped SQL dump scrubbing</title>
+  <meta name="description" content="Anonymize production SQL dumps for staging in one command. No DB connection, no YAML. Postgres, MySQL, SQLite. Built for CI/CD." />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%A7%B9%3C/text%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
+          },
+        },
+      },
+    };
+  </script>
+</head>
+<body class="bg-black text-neutral-200 font-mono antialiased selection:bg-emerald-400 selection:text-black">
+
+  <!-- Nav -->
+  <header class="border-b border-neutral-900">
+    <nav class="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
+      <a href="#" class="flex items-center gap-2 text-sm font-semibold text-white">
+        <span class="text-emerald-400">$</span> dumpscrub
+        <span class="rounded border border-neutral-800 px-1.5 py-0.5 text-[10px] text-neutral-500">v1.0.1</span>
+      </a>
+      <div class="flex items-center gap-6 text-xs text-neutral-400">
+        <a href="#compare" class="hidden sm:inline hover:text-white">compare</a>
+        <a href="#quickstart" class="hidden sm:inline hover:text-white">quickstart</a>
+        <a href="#pricing" class="hidden sm:inline hover:text-white">pricing</a>
+        <a href="https://github.com/dumpscrub/dumpscrub" class="rounded border border-neutral-800 px-3 py-1.5 hover:border-neutral-600 hover:text-white">GitHub</a>
+      </div>
+    </nav>
+  </header>
+
+  <!-- Hero -->
+  <section class="mx-auto max-w-5xl px-6 pb-16 pt-20 sm:pt-28">
+    <div class="inline-flex items-center gap-2 rounded-full border border-neutral-800 px-3 py-1 text-[11px] text-neutral-400">
+      <span class="h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
+      Free CLI · open format · runs offline
+    </div>
+
+    <h1 class="mt-6 max-w-3xl text-3xl font-bold leading-tight tracking-tight text-white sm:text-5xl">
+      Zero-config, air-gapped SQL dump scrubbing for <span class="text-emerald-400">CI/CD</span>.
+    </h1>
+
+    <p class="mt-6 max-w-2xl text-sm leading-relaxed text-neutral-400 sm:text-base">
+      Pipe a production dump in, get a staging-safe dump out. No live database connection,
+      no YAML, no vendor onboarding. Postgres <span class="text-neutral-200">(INSERT + COPY)</span>,
+      MySQL, and SQLite — in one streaming binary.
+    </p>
+
+    <!-- Hero terminal -->
+    <div class="mt-10 overflow-hidden rounded-lg border border-neutral-800 bg-neutral-950">
+      <div class="flex items-center gap-2 border-b border-neutral-900 px-4 py-2.5">
+        <span class="h-2.5 w-2.5 rounded-full bg-neutral-800"></span>
+        <span class="h-2.5 w-2.5 rounded-full bg-neutral-800"></span>
+        <span class="h-2.5 w-2.5 rounded-full bg-neutral-800"></span>
+        <span class="ml-2 text-[11px] text-neutral-600">~/prod</span>
+      </div>
+      <pre class="overflow-x-auto px-4 py-4 text-xs leading-relaxed sm:text-sm"><code><span class="text-neutral-600"># scrub a production dump into staging, deterministically</span>
+<span class="text-emerald-400">$</span> pg_dump prod | <span class="text-white">dumpscrub</span> --report scrub-report.json &gt; staging.sql
+
+<span class="text-neutral-600"># CI gate: fail the build if anything is still PII</span>
+<span class="text-emerald-400">$</span> dumpscrub --dry-run --fail-on-pii &lt; prod.sql
+<span class="text-red-400">dumpscrub: FAIL — 5 PII value(s) found in dump.</span></code></pre>
+    </div>
+
+    <div class="mt-8 flex flex-wrap items-center gap-3">
+      <a href="#quickstart" class="rounded-md bg-emerald-400 px-5 py-2.5 text-sm font-semibold text-black hover:bg-emerald-300">Install in one line</a>
+      <a href="#pricing" class="rounded-md border border-neutral-800 px-5 py-2.5 text-sm text-neutral-300 hover:border-neutral-600 hover:text-white">Get Pro — $49 once</a>
+    </div>
+
+    <p class="mt-4 text-[11px] text-neutral-600">No telemetry. No upload. Your data never leaves the pipe.</p>
+  </section>
+
+  <!-- Why / features strip -->
+  <section class="border-y border-neutral-900 bg-neutral-950/40">
+    <div class="mx-auto grid max-w-5xl grid-cols-1 gap-px px-6 py-12 sm:grid-cols-3">
+      <div class="pr-6">
+        <div class="text-emerald-400">—01</div>
+        <h3 class="mt-2 text-sm font-semibold text-white">Flat-file &amp; streaming</h3>
+        <p class="mt-2 text-xs leading-relaxed text-neutral-500">Reads a dump file, not your database. Constant memory, even over giant COPY blocks.</p>
+      </div>
+      <div class="border-l border-neutral-900 pl-6">
+        <div class="text-emerald-400">—02</div>
+        <h3 class="mt-2 text-sm font-semibold text-white">Deterministic output</h3>
+        <p class="mt-2 text-xs leading-relaxed text-neutral-500">Same input, same output. Reproducible, diff-friendly, referentially consistent.</p>
+      </div>
+      <div class="border-l border-neutral-900 pl-6">
+        <div class="text-emerald-400">—03</div>
+        <h3 class="mt-2 text-sm font-semibold text-white">Evidence you can prove</h3>
+        <p class="mt-2 text-xs leading-relaxed text-neutral-500">Pro emits an audit report with input/output SHA-256 so auditors can verify the transform.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Comparison -->
+  <section id="compare" class="mx-auto max-w-5xl px-6 py-20">
+    <h2 class="text-xl font-bold text-white sm:text-2xl">Why not Greenmask?</h2>
+    <p class="mt-3 max-w-2xl text-sm text-neutral-400">
+      Greenmask and pg_anonymizer are good tools — if you have a live database and a YAML file.
+      dumpscrub targets the flat-file, CI, air-gapped case they don't.
+    </p>
+
+    <div class="mt-8 overflow-x-auto rounded-lg border border-neutral-800">
+      <table class="w-full min-w-[640px] text-left text-xs sm:text-sm">
+        <thead>
+          <tr class="border-b border-neutral-800 text-neutral-500">
+            <th class="px-4 py-3 font-medium">Capability</th>
+            <th class="px-4 py-3 font-semibold text-emerald-400">dumpscrub</th>
+            <th class="px-4 py-3 font-medium">Greenmask</th>
+            <th class="px-4 py-3 font-medium">pg_anonymizer</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-neutral-900">
+          <tr><td class="px-4 py-3 text-neutral-300">Live DB connection required</td>
+              <td class="px-4 py-3 text-emerald-400">No</td><td class="px-4 py-3 text-neutral-500">Yes</td><td class="px-4 py-3 text-neutral-500">Yes</td></tr>
+          <tr><td class="px-4 py-3 text-neutral-300">YAML configuration</td>
+              <td class="px-4 py-3 text-emerald-400">None</td><td class="px-4 py-3 text-neutral-500">Heavy</td><td class="px-4 py-3 text-neutral-500">Partial</td></tr>
+          <tr><td class="px-4 py-3 text-neutral-300">Flat-file streaming (<span class="text-neutral-500">cat prod.sql | …</span>)</td>
+              <td class="px-4 py-3 text-emerald-400">Yes</td><td class="px-4 py-3 text-neutral-600">No</td><td class="px-4 py-3 text-neutral-600">No</td></tr>
+          <tr><td class="px-4 py-3 text-neutral-300">Postgres <span class="text-neutral-500">COPY … FROM stdin</span> support</td>
+              <td class="px-4 py-3 text-emerald-400">Yes</td><td class="px-4 py-3 text-neutral-600">n/a</td><td class="px-4 py-3 text-neutral-600">n/a</td></tr>
+          <tr><td class="px-4 py-3 text-neutral-300">MySQL + SQLite</td>
+              <td class="px-4 py-3 text-emerald-400">Yes</td><td class="px-4 py-3 text-neutral-600">No</td><td class="px-4 py-3 text-neutral-600">No</td></tr>
+          <tr><td class="px-4 py-3 text-neutral-300">Runs air-gapped / offline</td>
+              <td class="px-4 py-3 text-emerald-400">Yes</td><td class="px-4 py-3 text-neutral-500">Partial</td><td class="px-4 py-3 text-emerald-400">Yes</td></tr>
+          <tr><td class="px-4 py-3 text-neutral-300">Single-binary install</td>
+              <td class="px-4 py-3 text-emerald-400">Yes</td><td class="px-4 py-3 text-neutral-500">go install</td><td class="px-4 py-3 text-neutral-500">pip</td></tr>
+          <tr><td class="px-4 py-3 text-neutral-300">Audit-evidence report</td>
+              <td class="px-4 py-3 text-emerald-400">Pro</td><td class="px-4 py-3 text-neutral-600">No</td><td class="px-4 py-3 text-neutral-600">No</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Quickstart -->
+  <section id="quickstart" class="border-t border-neutral-900">
+    <div class="mx-auto max-w-5xl px-6 py-20">
+      <h2 class="text-xl font-bold text-white sm:text-2xl">Quickstart</h2>
+      <p class="mt-3 text-sm text-neutral-400">Three commands from zero to a scrubbed, CI-gated dump.</p>
+
+      <div class="mt-10 space-y-8">
+        <div>
+          <div class="mb-2 text-[11px] uppercase tracking-widest text-neutral-600">1 · install</div>
+          <div class="group relative overflow-hidden rounded-lg border border-neutral-800 bg-neutral-950">
+            <button data-copy class="absolute right-3 top-3 rounded border border-neutral-800 px-2 py-1 text-[10px] text-neutral-500 opacity-0 transition group-hover:opacity-100 hover:border-neutral-600 hover:text-white">copy</button>
+            <pre class="overflow-x-auto px-4 py-4 text-xs sm:text-sm"><code>curl -fsSL https://raw.githubusercontent.com/dumpscrub/dumpscrub/main/install.sh -o install.sh
+sh install.sh   <span class="text-neutral-600"># verifies SHA-256, installs to /usr/local/bin</span></code></pre>
+          </div>
+        </div>
+
+        <div>
+          <div class="mb-2 text-[11px] uppercase tracking-widest text-neutral-600">2 · scrub a dump</div>
+          <div class="group relative overflow-hidden rounded-lg border border-neutral-800 bg-neutral-950">
+            <button data-copy class="absolute right-3 top-3 rounded border border-neutral-800 px-2 py-1 text-[10px] text-neutral-500 opacity-0 transition group-hover:opacity-100 hover:border-neutral-600 hover:text-white">copy</button>
+            <pre class="overflow-x-auto px-4 py-4 text-xs sm:text-sm"><code><span class="text-neutral-600"># INSERT or native COPY format — both work</span>
+cat prod.sql | dumpscrub &gt; staging.sql
+
+<span class="text-neutral-600"># fix a false positive without touching code</span>
+dumpscrub --ignore users.phone --mask orders.ship_address=street_address &lt; prod.sql &gt; staging.sql</code></pre>
+          </div>
+        </div>
+
+        <div>
+          <div class="mb-2 text-[11px] uppercase tracking-widest text-neutral-600">3 · gate CI</div>
+          <div class="group relative overflow-hidden rounded-lg border border-neutral-800 bg-neutral-950">
+            <button data-copy class="absolute right-3 top-3 rounded border border-neutral-800 px-2 py-1 text-[10px] text-neutral-500 opacity-0 transition group-hover:opacity-100 hover:border-neutral-600 hover:text-white">copy</button>
+            <pre class="overflow-x-auto px-4 py-4 text-xs sm:text-sm"><code><span class="text-neutral-600"># .github/workflows/scrub.yml</span>
+- uses: dumpscrub/dumpscrub@v1
+  with:
+    input: prod.sql
+    output: staging.sql
+    report: scrub-report.json
+    fail-on-pii: "true"</code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pricing -->
+  <section id="pricing" class="border-t border-neutral-900 bg-neutral-950/40">
+    <div class="mx-auto max-w-5xl px-6 py-20">
+      <h2 class="text-xl font-bold text-white sm:text-2xl">Pricing</h2>
+      <p class="mt-3 max-w-2xl text-sm text-neutral-400">The scrubbing engine is free forever. Pay once for the audit-evidence report and CI gate.</p>
+
+      <div class="mt-10 grid grid-cols-1 gap-6 md:grid-cols-2">
+        <!-- Free -->
+        <div class="rounded-xl border border-neutral-800 bg-black p-6">
+          <div class="text-sm font-semibold text-white">Free</div>
+          <div class="mt-4 text-3xl font-bold text-white">$0</div>
+          <div class="mt-1 text-[11px] text-neutral-500">forever · no account</div>
+          <ul class="mt-6 space-y-2.5 text-xs text-neutral-400">
+            <li><span class="text-emerald-400">›</span> Postgres / MySQL / SQLite scrubbing</li>
+            <li><span class="text-emerald-400">›</span> INSERT + native COPY streaming</li>
+            <li><span class="text-emerald-400">›</span> Deterministic, reproducible output</li>
+            <li><span class="text-emerald-400">›</span> Config overrides &amp; CLI flags</li>
+            <li><span class="text-neutral-600">› report watermarked "unlicensed"</span></li>
+          </ul>
+          <a href="#quickstart" class="mt-6 block rounded-md border border-neutral-800 px-4 py-2.5 text-center text-sm text-neutral-300 hover:border-neutral-600 hover:text-white">Install the CLI</a>
+        </div>
+
+        <!-- Pro -->
+        <div class="relative rounded-xl border border-emerald-400/40 bg-black p-6 ring-1 ring-emerald-400/10">
+          <div class="absolute -top-3 left-6 rounded-full bg-emerald-400 px-3 py-1 text-[10px] font-semibold text-black">ONE-TIME</div>
+          <div class="text-sm font-semibold text-emerald-400">Pro</div>
+          <div class="mt-4 text-3xl font-bold text-white">$49</div>
+          <div class="mt-1 text-[11px] text-neutral-500">one payment · yours forever</div>
+          <ul class="mt-6 space-y-2.5 text-xs text-neutral-300">
+            <li><span class="text-emerald-400">›</span> Full audit-evidence report with input/output SHA-256</li>
+            <li><span class="text-emerald-400">›</span> CI gate (<span class="text-white">--fail-on-pii</span>) unlocked</li>
+            <li><span class="text-emerald-400">›</span> Offline license key for air-gapped runners</li>
+            <li><span class="text-emerald-400">›</span> All v1.x updates included</li>
+            <li><span class="text-emerald-400">›</span> Priority email support</li>
+          </ul>
+          <!-- TODO: replace with your live Polar.sh checkout URL -->
+          <a href="https://buy.polar.sh/polar_cl_WlECVcFLOwxaPlWPxAcODCABC3cyBCB6hqZ9S12KD34"
+             class="mt-6 block rounded-md bg-emerald-400 px-4 py-2.5 text-center text-sm font-semibold text-black hover:bg-emerald-300">
+            Buy Pro — $49
+          </a>
+          <p class="mt-3 text-center text-[10px] text-neutral-600">Secure checkout via Polar · license delivered instantly</p>
+        </div>
+      </div>
+
+      <!-- License usage -->
+      <div class="mt-10 overflow-hidden rounded-lg border border-neutral-800 bg-neutral-950">
+        <pre class="overflow-x-auto px-4 py-4 text-xs"><code><span class="text-neutral-600"># activate in CI (key via secret; org id is preset)</span>
+export DUMPSCRUB_LICENSE_KEY=polar_cl_…
+dumpscrub prod.sql -o staging.sql --report scrub-report.json</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- Closing -->
+  <section class="border-t border-neutral-900">
+    <div class="mx-auto max-w-5xl px-6 py-20 text-center">
+      <h2 class="text-xl font-bold text-white sm:text-3xl">Scrub your first dump in 60 seconds.</h2>
+      <div class="mt-6 flex flex-wrap justify-center gap-3">
+        <a href="#quickstart" class="rounded-md bg-emerald-400 px-5 py-2.5 text-sm font-semibold text-black hover:bg-emerald-300">Get started free</a>
+        <a href="https://buy.polar.sh/polar_cl_WlECVcFLOwxaPlWPxAcODCABC3cyBCB6hqZ9S12KD34" class="rounded-md border border-neutral-800 px-5 py-2.5 text-sm text-neutral-300 hover:border-neutral-600 hover:text-white">Buy Pro — $49</a>
+      </div>
+    </div>
+  </section>
+
+  <footer class="border-t border-neutral-900">
+    <div class="mx-auto flex max-w-5xl flex-col items-center justify-between gap-3 px-6 py-8 text-[11px] text-neutral-600 sm:flex-row">
+      <div><span class="text-emerald-400">$</span> dumpscrub v1.0.1 — zero-config SQL dump scrubbing</div>
+      <div class="flex gap-5">
+        <a href="https://github.com/dumpscrub/dumpscrub" class="hover:text-neutral-300">GitHub</a>
+        <a href="#compare" class="hover:text-neutral-300">compare</a>
+        <a href="#pricing" class="hover:text-neutral-300">pricing</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // copy-to-clipboard for terminal blocks
+    document.querySelectorAll('[data-copy]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var block = btn.parentElement.querySelector('pre');
+        var text = block ? block.innerText : '';
+        if (navigator.clipboard && text) {
+          navigator.clipboard.writeText(text).then(function () {
+            var original = btn.textContent;
+            btn.textContent = 'copied';
+            setTimeout(function () { btn.textContent = original; }, 1200);
+          });
+        }
+      });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,135 @@
+name: release
+
+# Builds standalone binaries + Python distributions and publishes them to a
+# GitHub Release whenever a v*.*.* tag is pushed.
+#
+#   git tag v1.0.0 && git push origin v1.0.0
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Fail fast: run the engine's tests before building anything.
+  # ---------------------------------------------------------------------------
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install test deps
+        run: python -m pip install --upgrade pip pytest
+      - name: Run tests
+        run: python -m pytest tests/ -q
+
+  # ---------------------------------------------------------------------------
+  # Standalone single-file binaries, one per OS/arch.
+  # ---------------------------------------------------------------------------
+  build-binary:
+    needs: test
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { runner: ubuntu-latest,    asset_os: Linux,  asset_arch: x86_64 }
+          - { runner: ubuntu-24.04-arm, asset_os: Linux,  asset_arch: arm64 }
+          - { runner: macos-13,         asset_os: Darwin, asset_arch: x86_64 }
+          - { runner: macos-14,         asset_os: Darwin, asset_arch: arm64 }
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install PyInstaller
+        run: python -m pip install --upgrade pip pyinstaller
+
+      - name: Build binary
+        run: |
+          python -m PyInstaller \
+            --onefile --clean --noconfirm \
+            --name dumpscrub \
+            --distpath dist --workpath build --specpath build \
+            dumpscrub.py
+
+      - name: Package artifact
+        env:
+          ASSET_OS: ${{ matrix.asset_os }}
+          ASSET_ARCH: ${{ matrix.asset_arch }}
+        run: |
+          mkdir -p pkg
+          cp dist/dumpscrub pkg/dumpscrub
+          chmod 0755 pkg/dumpscrub
+          tar -czf "dumpscrub_${ASSET_OS}_${ASSET_ARCH}.tar.gz" -C pkg dumpscrub
+
+      - name: Upload binary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dumpscrub_${{ matrix.asset_os }}_${{ matrix.asset_arch }}
+          path: dumpscrub_${{ matrix.asset_os }}_${{ matrix.asset_arch }}.tar.gz
+          if-no-files-found: error
+
+  # ---------------------------------------------------------------------------
+  # Python sdist + wheel (for pip / pipx users).
+  # ---------------------------------------------------------------------------
+  build-python:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Build sdist + wheel
+        run: |
+          python -m pip install --upgrade build
+          python -m build . --outdir dist-python
+      - name: Upload python dist
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-dist
+          path: dist-python/*
+          if-no-files-found: error
+
+  # ---------------------------------------------------------------------------
+  # Assemble checksums and publish the GitHub Release.
+  # ---------------------------------------------------------------------------
+  release:
+    needs: [build-binary, build-python]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Generate SHA256SUMS
+        run: |
+          cd artifacts
+          ls -la
+          sha256sum dumpscrub_*.tar.gz > SHA256SUMS
+          cat SHA256SUMS
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            artifacts/dumpscrub_*.tar.gz
+            artifacts/SHA256SUMS
+            artifacts/*.whl
+            artifacts/*.tar.gz
+            install.sh
+          fail_on_unmatched_files: false

@@ -1,0 +1,55 @@
+name: dumpscrub
+description: Anonymize a SQL dump before restoring it to staging.
+author: dumpscrub
+
+inputs:
+  input:
+    description: Path to the source SQL dump.
+    required: true
+  output:
+    description: Path to write the scrubbed dump.
+    required: true
+  report:
+    description: Path to write the JSON audit-evidence report.
+    required: false
+    default: ""
+  fail-on-pii:
+    description: Fail the step if any PII is found in the dump.
+    required: false
+    default: "true"
+  license:
+    description: dumpscrub license key (use a repository secret).
+    required: false
+    default: ""
+  org-id:
+    description: Polar.sh organization id, required to validate the license online.
+    required: false
+    default: ""
+  python-version:
+    description: Python version to use.
+    required: false
+    default: "3.11"
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Run dumpscrub
+      shell: bash
+      env:
+        DUMPSCRUB_LICENSE_KEY: ${{ inputs.license }}
+        DUMPSCRUB_ORG_ID: ${{ inputs.org-id }}
+      run: |
+        set -euo pipefail
+        ARGS=( "${{ inputs.input }}" -o "${{ inputs.output }}" )
+        if [ -n "${{ inputs.report }}" ]; then
+          ARGS+=( --report "${{ inputs.report }}" )
+        fi
+        if [ "${{ inputs.fail-on-pii }}" = "true" ]; then
+          ARGS+=( --fail-on-pii )
+        fi
+        python "${{ github.action_path }}/dumpscrub.py" "${ARGS[@]}"

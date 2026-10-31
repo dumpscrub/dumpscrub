@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dumpscrub"
+version = "1.0.1"
+description = "Zero-config, flat-file SQL dump anonymizer for Postgres, MySQL, and SQLite."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "Proprietary" }
+authors = [{ name = "TODO" }]
+dependencies = []
+keywords = ["anonymization", "pii", "gdpr", "database", "postgres", "mysql", "sqlite", "staging"]
+
+[project.urls]
+Homepage = "https://TODO.example.com/dumpscrub"
+
+[project.scripts]
+dumpscrub = "dumpscrub:main"
+
+[tool.setuptools]
+py-modules = ["dumpscrub"]
