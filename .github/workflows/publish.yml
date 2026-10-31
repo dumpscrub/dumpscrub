@@ -1,0 +1,47 @@
+name: publish
+
+# Publishes the Python distribution to PyPI via Trusted Publishing (OIDC).
+# No API token is stored: PyPI trusts this repo + workflow over a short-lived
+# OpenID Connect token.
+#
+# One-time setup on PyPI (Account -> Publishing -> Add a pending publisher):
+#   PyPI Project Name : dumpscrub
+#   Owner             : dumpscrub
+#   Repository name   : dumpscrub
+#   Workflow name     : publish.yml
+#   Environment name  : (leave blank)
+#
+# Runs automatically when a GitHub Release is published, or on manual dispatch.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write   # REQUIRED for PyPI trusted publishing
+
+jobs:
+  pypi:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - uses: actions/setup-python@v7.1.0
+        with:
+          python-version: "3.11"
+
+      - name: Build sdist + wheel
+        run: |
+          python -m pip install --upgrade build
+          python -m build . --outdir dist
+
+      - name: List dist
+        run: ls -la dist
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          # Trusted publishing: no username/password needed.
+          packages-dir: dist
