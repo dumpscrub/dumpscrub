@@ -19,10 +19,10 @@ jobs:
   # Fail fast: run the engine's tests before building anything.
   # ---------------------------------------------------------------------------
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-python@v7.1.0
         with:
           python-version: "3.11"
       - name: Install test deps
@@ -39,13 +39,13 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { runner: ubuntu-latest,    asset_os: Linux,  asset_arch: x86_64 }
+          - { runner: ubuntu-24.04,    asset_os: Linux,  asset_arch: x86_64 }
           - { runner: ubuntu-24.04-arm, asset_os: Linux,  asset_arch: arm64 }
           - { runner: macos-14,         asset_os: Darwin, asset_arch: arm64 }
     runs-on: ${{ matrix.runner }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-python@v7.1.0
         with:
           python-version: "3.11"
 
@@ -71,7 +71,7 @@ jobs:
           tar -czf "dumpscrub_${ASSET_OS}_${ASSET_ARCH}.tar.gz" -C pkg dumpscrub
 
       - name: Upload binary artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: dumpscrub_${{ matrix.asset_os }}_${{ matrix.asset_arch }}
           path: dumpscrub_${{ matrix.asset_os }}_${{ matrix.asset_arch }}.tar.gz
@@ -82,10 +82,10 @@ jobs:
   # ---------------------------------------------------------------------------
   build-python:
     needs: test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-python@v7.1.0
         with:
           python-version: "3.11"
       - name: Build sdist + wheel
@@ -93,7 +93,7 @@ jobs:
           python -m pip install --upgrade build
           python -m build . --outdir dist-python
       - name: Upload python dist
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: python-dist
           path: dist-python/*
@@ -104,12 +104,12 @@ jobs:
   # ---------------------------------------------------------------------------
   release:
     needs: [build-binary, build-python]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7.0.1
 
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8.0.2
         with:
           path: artifacts
           merge-multiple: true
@@ -122,7 +122,7 @@ jobs:
           cat SHA256SUMS
 
       - name: Publish GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3.0.3
         with:
           generate_release_notes: true
           files: |
