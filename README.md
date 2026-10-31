@@ -1,5 +1,10 @@
 # dumpscrub
 
+[![PyPI](https://img.shields.io/pypi/v/dumpscrub?color=2ecc71)](https://pypi.org/project/dumpscrub/)
+[![Python versions](https://img.shields.io/pypi/pyversions/dumpscrub)](https://pypi.org/project/dumpscrub/)
+[![CI](https://github.com/dumpscrub/dumpscrub/actions/workflows/ci.yml/badge.svg)](https://github.com/dumpscrub/dumpscrub/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/license-Elastic%202.0-blue)](LICENSE)
+
 **Zero-config, flat-file SQL dump anonymizer.** Pipe a production dump in, get a
 staging-safe dump out. No database connection, no YAML, no vendor onboarding.
 
@@ -157,6 +162,10 @@ counts) but omits the hashes and per-column detail and carries a `watermark`.
 
 ## License
 
-Free CLI (scrubbing). Pro unlocks the full audit-evidence report and the CI gate.
-Online license keys are issued via Polar.sh; air-gapped keys are Ed25519 tokens
-minted with `tools/sign_license.py`. See `check_license()` in `dumpscrub.py`.
+Licensed under the **Elastic License 2.0** (source-available) — see [LICENSE](LICENSE).
+You may use, modify, and self-host the engine; you may not offer it as a hosted or
+managed service, or circumvent the license-key checks.
+
+The scrubbing engine is free. Pro (the full audit-evidence report and the CI gate)
+requires a license key. Online keys are issued via Polar.sh; air-gapped keys are
+Ed25519 tokens minted with `tools/sign_license.py`. See `check_license()` in `dumpscrub.py`.
