@@ -34,7 +34,7 @@ import urllib.request
 from datetime import datetime, timezone
 from typing import Dict, Iterable, Iterator, List, Optional, Tuple
 
-__version__ = "1.0.1"
+__version__ = "1.0.2"
 
 # --------------------------------------------------------------------------- #
 # PII detection (column-name heuristics)
