@@ -18,10 +18,24 @@ database connection and heavy YAML configuration**. dumpscrub is the opposite: i
 operates on a **flat file**, streams it, and needs **zero config** to mask the obvious
 PII columns it detects by name.
 
-## Install (local dev)
+## Install
+
+**Users (recommended — from PyPI):**
 
 ```bash
-# from this folder
+pipx install dumpscrub     # or: uv tool install dumpscrub
+```
+
+**Or the standalone binary (no Python runtime required):**
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/dumpscrub/dumpscrub/main/install.sh -o install.sh
+sh install.sh
+```
+
+**Local development (from a clone):**
+
+```bash
 pipx install .
 # or just run it directly
 python dumpscrub.py --help

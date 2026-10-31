@@ -153,7 +153,11 @@
           <div class="mb-2 text-[11px] uppercase tracking-widest text-neutral-600">1 · install</div>
           <div class="group relative overflow-hidden rounded-lg border border-neutral-800 bg-neutral-950">
             <button data-copy class="absolute right-3 top-3 rounded border border-neutral-800 px-2 py-1 text-[10px] text-neutral-500 opacity-0 transition group-hover:opacity-100 hover:border-neutral-600 hover:text-white">copy</button>
-            <pre class="overflow-x-auto px-4 py-4 text-xs sm:text-sm"><code>curl -fsSL https://raw.githubusercontent.com/dumpscrub/dumpscrub/main/install.sh -o install.sh
+            <pre class="overflow-x-auto px-4 py-4 text-xs sm:text-sm"><code><span class="text-neutral-600"># recommended — via PyPI</span>
+pipx install dumpscrub   <span class="text-neutral-600"># or: uv tool install dumpscrub</span>
+
+<span class="text-neutral-600"># or a standalone binary (no Python runtime)</span>
+curl -fsSL https://raw.githubusercontent.com/dumpscrub/dumpscrub/main/install.sh -o install.sh
 sh install.sh   <span class="text-neutral-600"># verifies SHA-256, installs to /usr/local/bin</span></code></pre>
           </div>
         </div>
