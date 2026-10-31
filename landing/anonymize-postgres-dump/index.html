@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Anonymize a Postgres dump (pg_dump) for staging — dumpscrub</title>
+  <meta name="description" content="Scrub PII from a Postgres dump in one command. Works on pg_dump's native COPY format and --inserts. No database connection, no YAML, deterministic output." />
+  <link rel="canonical" href="https://dumpscrub.github.io/dumpscrub/anonymize-postgres-dump/" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{fontFamily:{mono:['"JetBrains Mono"','ui-monospace','SFMono-Regular','Menlo','monospace']}}}};</script>
+</head>
+<body class="bg-black text-neutral-200 font-mono antialiased selection:bg-emerald-400 selection:text-black">
+
+  <header class="border-b border-neutral-900">
+    <nav class="mx-auto flex max-w-3xl items-center justify-between px-6 py-4 text-xs">
+      <a href="../" class="text-sm font-semibold text-white"><span class="text-emerald-400">$</span> dumpscrub</a>
+      <div class="flex items-center gap-5 text-neutral-400">
+        <a href="../greenmask-alternative/" class="hover:text-white">vs Greenmask</a>
+        <a href="https://github.com/dumpscrub/dumpscrub" class="rounded border border-neutral-800 px-3 py-1.5 hover:border-neutral-600 hover:text-white">GitHub</a>
+      </div>
+    </nav>
+  </header>
+
+  <main class="mx-auto max-w-3xl px-6 py-16">
+    <p class="text-xs text-neutral-600"><a href="../" class="hover:text-neutral-300">← dumpscrub</a></p>
+    <h1 class="mt-4 text-3xl font-bold leading-tight text-white sm:text-4xl">Anonymize a Postgres dump for staging</h1>
+    <p class="mt-5 text-sm leading-relaxed text-neutral-400">
+      You want production-shaped data in staging — same schema, same volumes — without real
+      emails, phones, SSNs, or addresses sitting in a disposable database. DumpScrub works on the
+      <span class="text-white">dump file</span>, so there's no live database connection and nothing to configure.
+    </p>
+
+    <div class="mt-8 overflow-hidden rounded-lg border border-neutral-800 bg-neutral-950">
+      <pre class="overflow-x-auto px-4 py-4 text-xs sm:text-sm"><code><span class="text-neutral-600"># install and scrub a plain-format dump</span>
+<span class="text-emerald-400">$</span> pipx install dumpscrub
+<span class="text-emerald-400">$</span> pg_dump prod | <span class="text-white">dumpscrub</span> &gt; staging.sql
+<span class="text-emerald-400">$</span> psql staging &lt; staging.sql</code></pre>
+    </div>
+
+    <h2 class="mt-12 text-lg font-bold text-white">Works with both pg_dump formats</h2>
+    <p class="mt-3 text-sm leading-relaxed text-neutral-400">
+      Default <span class="text-white">plain-format</span> <code class="text-emerald-400">pg_dump</code> emits
+      <code class="text-emerald-400">COPY ... FROM stdin</code> blocks. DumpScrub reads those directly, streaming
+      row by row (flat memory), preserving <code class="text-emerald-400">\N</code> NULLs. If you use
+      <code class="text-emerald-400">--inserts</code>, that works too.
+    </p>
+    <div class="mt-4 overflow-hidden rounded-lg border border-neutral-800 bg-neutral-950">
+      <pre class="overflow-x-auto px-4 py-4 text-xs sm:text-sm"><code><span class="text-neutral-600"># native COPY format (the default)</span>
+pg_dump prod | dumpscrub &gt; staging.sql
+
+<span class="text-neutral-600"># if you prefer INSERTs</span>
+pg_dump --inserts --column-inserts prod | dumpscrub &gt; staging.sql</code></pre>
+    </div>
+
+    <h2 class="mt-12 text-lg font-bold text-white">What gets masked</h2>
+    <p class="mt-3 text-sm leading-relaxed text-neutral-400">
+      Columns are detected by name: <code class="text-emerald-400">email</code>,
+      <code class="text-emerald-400">phone</code>, <code class="text-emerald-400">ssn</code>,
+      <code class="text-emerald-400">first_name</code>, <code class="text-emerald-400">last_name</code>,
+      <code class="text-emerald-400">address</code>, <code class="text-emerald-400">city</code>,
+      <code class="text-emerald-400">zip</code>, <code class="text-emerald-400">dob</code>,
+      <code class="text-emerald-400">username</code>, <code class="text-emerald-400">password/token</code>.
+      Replacements are deterministic — the same input always produces the same output, so results are
+      reproducible and join keys stay consistent.
+    </p>
+
+    <h2 class="mt-12 text-lg font-bold text-white">Fix over/under-masking without code</h2>
+    <div class="mt-4 overflow-hidden rounded-lg border border-neutral-800 bg-neutral-950">
+      <pre class="overflow-x-auto px-4 py-4 text-xs sm:text-sm"><code><span class="text-neutral-600"># free-text and odd column names: override per rule</span>
+dumpscrub --ignore users.phone \
+          --mask orders.ship_address=street_address \
+          &lt; prod.sql &gt; staging.sql
+
+<span class="text-neutral-600"># or commit a team-wide policy</span>
+cat &gt; .dumpscrub.json &lt;&lt;'JSON'
+{ "mask": { "orders.ship_address": "street_address" },
+  "ignore": ["audit_log.message"] }
+JSON</code></pre>
+    </div>
+
+    <h2 class="mt-12 text-lg font-bold text-white">Gate it in CI</h2>
+    <p class="mt-3 text-sm leading-relaxed text-neutral-400">
+      Fail the pipeline if a dump still contains PII, and produce an audit-evidence report
+      (input/output SHA-256) for reviewers.
+    </p>
+    <div class="mt-4 overflow-hidden rounded-lg border border-neutral-800 bg-neutral-950">
+      <pre class="overflow-x-auto px-4 py-4 text-xs sm:text-sm"><code>dumpscrub prod.sql -o staging.sql --report scrub-report.json
+dumpscrub --dry-run --fail-on-pii &lt; prod.sql   <span class="text-neutral-600"># exit 1 if PII remains</span></code></pre>
+    </div>
+
+    <div class="mt-14 flex flex-wrap gap-3">
+      <a href="https://github.com/dumpscrub/dumpscrub" class="rounded-md bg-emerald-400 px-5 py-2.5 text-sm font-semibold text-black hover:bg-emerald-300">Get it on GitHub</a>
+      <a href="https://buy.polar.sh/polar_cl_WlECVcFLOwxaPlWPxAcODCABC3cyBCB6hqZ9S12KD34" class="rounded-md border border-neutral-800 px-5 py-2.5 text-sm text-neutral-300 hover:border-neutral-600 hover:text-white">Get Pro — $49 once</a>
+    </div>
+  </main>
+
+  <footer class="border-t border-neutral-900">
+    <div class="mx-auto flex max-w-3xl flex-col gap-3 px-6 py-8 text-[11px] text-neutral-600 sm:flex-row sm:justify-between">
+      <div><span class="text-emerald-400">$</span> dumpscrub — zero-config SQL dump scrubbing</div>
+      <div class="flex gap-5">
+        <a href="../" class="hover:text-neutral-300">home</a>
+        <a href="../greenmask-alternative/" class="hover:text-neutral-300">vs Greenmask</a>
+        <a href="../pg-dump-copy-anonymize/" class="hover:text-neutral-300">COPY format</a>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>

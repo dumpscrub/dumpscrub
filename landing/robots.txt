@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://dumpscrub.github.io/dumpscrub/sitemap.xml
